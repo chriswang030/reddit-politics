@@ -11,11 +11,11 @@ with open(PATH + '/reddit-politics/reddit-politics/resources/config.yml', 'r') a
     config = yaml.load(file)
 
 
-class SubmissionReader:
+class SubmissionReader(object):
     def __init__(self, submission_table_name='submission', timestamp_column_name='created_utc'):
         self.submission_table_name = submission_table_name
         self.timestamp_column_name = timestamp_column_name
-        self.default_start_epoch=int(dt.datetime(2016,11,8).replace(tzinfo=dt.timezone.utc).timestamp())
+        self.default_start_epoch = int(dt.datetime(2016,11,8).replace(tzinfo=dt.timezone.utc).timestamp()) # set default to Nov 8, 2016
 
     def get(self, subreddit='politics', limit=16):
         """
@@ -44,6 +44,6 @@ class SubmissionReader:
 
         for submission in submissions:
             swriter.push(submission)
-            print('Pushing submission with id {} to writer'.format(submission.id))
+            print('Pushing submission {} to writer'.format(submission.id))
         swriter.flush()
         return True

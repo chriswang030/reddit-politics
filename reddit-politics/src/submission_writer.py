@@ -7,8 +7,15 @@ PATH = '/Users/Chris/Documents/workspace-py' # path to working directory
 with open(PATH + '/reddit-politics/reddit-politics/resources/config.yml', 'r') as file:
     config = yaml.load(file)
 
+# Config article parsing
+nconfig = newspaper.Config()
+nconfig.MIN_WORD_COUNT = 150
+nconfig.MAX_KEYWORDFS = 35
+nconfig.memoize_articles = False
+nconfig.fetch_images = False
 
-class SubmissionWriter:
+
+class SubmissionWriter(object):
     def __init__(self, submission_table_name='submission', keywords_table_name='keywords', max_size=16):
         self.submission_queue = []
         self.queue_size = 0
@@ -47,8 +54,8 @@ class SubmissionWriter:
             in database must match attributes of praw.Submission instances.
 
         Returns
-            success (bool): True if all data is successfully written to database. False if any data could
-            not be written.
+            success (bool): True if all data is successfully written to database. False if any data could not
+            be written.
         """
 
         success = True
@@ -57,11 +64,11 @@ class SubmissionWriter:
         cursor = db.cursor()
 
         insert_query = 'INSERT IGNORE INTO {} {} VALUES {}'
+        get_columns_query = 'SHOW columns FROM {}'
 
-        cursor.execute('SHOW columns FROM ' + self.submission_table_name)
+        cursor.execute(get_columns_query.format(self.submission_table_name))
         attributes = tuple(column[0] for column in cursor.fetchall())
-        sub_values = str([tuple(getattr(submission, attribute) for attribute in attributes)
-                          for submission in self.submission_queue])[1:-1]
+        sub_values = str([tuple(getattr(submission, attribute) for attribute in attributes) for submission in self.submission_queue])[1:-1]
         sub_columns = str(attributes).replace("'", '')
 
         sub_query = insert_query.format(self.submission_table_name, sub_columns, sub_values)
@@ -74,15 +81,16 @@ class SubmissionWriter:
             db.rollback()
             success = False
 
-        cursor.execute('SHOW columns FROM ' + self.keywords_table_name)
+        cursor.execute(get_columns_query.format(self.keywords_table_name))
         key_columns = str(tuple(column[0] for column in cursor.fetchall())).replace("'", '')
 
         key_values_list = []
         for submission in self.submission_queue:
-            article = newspaper.Article(url=submission.url)
-            article.download()
-            article.parse()
-            article.nlp()
+            article = newspaper.Article(url=submission.url, config=nconfig)
+            try:
+                article.build()
+            except:
+                print('Error building article from submission ' + submisison.id)
             for keyword in article.keywords:
                 key_values_list.append((submission.id, keyword))
         key_values = str(key_values_list)[1:-1]
