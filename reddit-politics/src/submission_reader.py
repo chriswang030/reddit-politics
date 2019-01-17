@@ -5,7 +5,9 @@ import pymysql
 import submission_writer as sw
 import yaml
 
-with open('/Users/Chris/Documents/workspace-py/reddit-politics/reddit-politics/resources/config.yml', 'r') as file:
+PATH = '/Users/Chris/Documents/workspace-py' # path to working directory
+
+with open(PATH + '/reddit-politics/reddit-politics/resources/config.yml', 'r') as file:
     config = yaml.load(file)
 
 
@@ -15,8 +17,10 @@ class SubmissionReader:
         self.timestamp_column_name = timestamp_column_name
         self.default_start_epoch=int(dt.datetime(2016,11,8).replace(tzinfo=dt.timezone.utc).timestamp())
 
-
     def get(self, subreddit='politics', limit=16):
+        """
+        """
+
         db = pymysql.connect(**config['mysql'])
         cursor = db.cursor()
 
@@ -29,6 +33,9 @@ class SubmissionReader:
         return self._get(after=after, subreddit=subreddit, limit=limit)
 
     def _get(self, after, subreddit, limit):
+        """
+        """
+
         reddit = praw.Reddit(**config['praw'])
         pushshift = PushshiftAPI(reddit)
 
