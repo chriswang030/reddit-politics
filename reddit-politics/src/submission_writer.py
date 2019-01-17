@@ -2,11 +2,20 @@ import newspaper
 import pymysql
 import yaml
 
-with open('/Users/Chris/Documents/workspace-py/reddit-politics/reddit-politics/resources/config.yml', 'r') as file:
+PATH = '/Users/Chris/Documents/workspace-py' # path to working directory
+
+with open(PATH + '/reddit-politics/reddit-politics/resources/config.yml', 'r') as file:
     config = yaml.load(file)
 
+# Config article parsing
+nconfig = newspaper.Config()
+nconfig.MIN_WORD_COUNT = 150
+nconfig.MAX_KEYWORDFS = 35
+nconfig.memoize_articles = False
+nconfig.fetch_images = False
 
-class SubmissionWriter:
+
+class SubmissionWriter(object):
     def __init__(self, submission_table_name='submission', keywords_table_name='keywords', max_size=16):
         self.submission_queue = []
         self.queue_size = 0
@@ -15,6 +24,15 @@ class SubmissionWriter:
         self.keywords_table_name = keywords_table_name
 
     def push(self, submission):
+        """ Pushes a Submission instance onto submission_queue. Unimplemented: thread-safe push.
+
+        Args
+            submission (praw.Submission): submission to be written onto SQL database
+
+        Returns
+            bool: True
+        """
+
         self.submission_queue.append(submission)
         self.queue_size += 1
 
@@ -23,21 +41,37 @@ class SubmissionWriter:
         return True
 
     def flush(self):
+        """ Calls _write_to_sql. Unimplemented: thread-safe flush.
+
+        Returns
+            bool: True if _write_to_sql is successfully called. False if otherwise.
+        """
+
         return self._write_to_sql()
 
     def _write_to_sql(self):
-        # Connect to MySQL database
+        """ Writes all submissions in submission_queue to appropriate table in SQL database. Column names
+            in database must match attributes of praw.Submission instances.
+
+        Returns
+            success (bool): True if all data is successfully written to database. False if any data could not
+            be written.
+        """
+
+        success = True
+
         db = pymysql.connect(**config['mysql'])
         cursor = db.cursor()
 
-        # Insert submission metadata into submission table
-        cursor.execute('SHOW columns FROM ' + self.submission_table_name)
+        insert_query = 'INSERT IGNORE INTO {} {} VALUES {}'
+        get_columns_query = 'SHOW columns FROM {}'
+
+        cursor.execute(get_columns_query.format(self.submission_table_name))
         attributes = tuple(column[0] for column in cursor.fetchall())
-        sub_values = str([tuple(getattr(submission, attribute) for attribute in attributes)
-                          for submission in self.submission_queue])[1:-1]
+        sub_values = str([tuple(getattr(submission, attribute) for attribute in attributes) for submission in self.submission_queue])[1:-1]
         sub_columns = str(attributes).replace("'", '')
 
-        sub_query = 'INSERT IGNORE INTO {} {} VALUES {}'.format(self.submission_table_name, sub_columns, sub_values)
+        sub_query = insert_query.format(self.submission_table_name, sub_columns, sub_values)
         try:
             cursor.execute(sub_query)
             db.commit()
@@ -45,24 +79,23 @@ class SubmissionWriter:
         except:
             print('Error executing query: ' + sub_query)
             db.rollback()
-            return False
+            success = False
 
-        # Insert keyword extraction into keywords table
-        cursor.execute('SHOW columns FROM ' + self.keywords_table_name)
+        cursor.execute(get_columns_query.format(self.keywords_table_name))
         key_columns = str(tuple(column[0] for column in cursor.fetchall())).replace("'", '')
 
         key_values_list = []
         for submission in self.submission_queue:
-            article = newspaper.Article(url=submission.url)
-            article.download()
-            article.parse()
-            article.nlp()
+            article = newspaper.Article(url=submission.url, config=nconfig)
+            try:
+                article.build()
+            except:
+                print('Error building article from submission ' + submisison.id)
             for keyword in article.keywords:
                 key_values_list.append((submission.id, keyword))
         key_values = str(key_values_list)[1:-1]
 
-        key_query = 'INSERT IGNORE INTO {} {} VALUES {}'.format(
-            self.keywords_table_name, key_columns, key_values)
+        key_query = insert_query.format(self.keywords_table_name, key_columns, key_values)
         try:
             cursor.execute(key_query)
             db.commit()
@@ -70,9 +103,9 @@ class SubmissionWriter:
         except:
             print('Error executing query: ' + key_query)
             db.rollback()
-            return False
+            success = False
 
-        # Close database and update queue size
         db.close()
         queue_size = 0
-        return True
+        self.submission_queue.clear()
+        return success

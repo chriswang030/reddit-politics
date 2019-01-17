@@ -1,10 +1,10 @@
 mysql:
   host: localhost
   port: 3306
-  user: 
-  passwd:
-  db:
+  user: cwang
+  passwd: password
+  db: cwangdb
 praw:
-  client_id:
-  client_secret:
-  user_agent:
+  client_id: 42j3JDwf9A_EIA
+  client_secret: ZnQoCDBxVwu1vRTmkap_VJ75SRk
+  user_agent: cwangtest
