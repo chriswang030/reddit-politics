@@ -1,9 +1,8 @@
 import newspaper
-import praw
 import pymysql
 import yaml
 
-with open('config.yml', 'r') as file:
+with open('/Users/Chris/Documents/workspace-py/reddit-politics/reddit-politics/resources/config.yml', 'r') as file:
     config = yaml.load(file)
 
 
@@ -16,10 +15,6 @@ class SubmissionWriter:
         self.keywords_table_name = keywords_table_name
 
     def push(self, submission):
-        if not isinstance(submission, praw.Submission):
-            print('Illegal argument exception: ' + submission + ' is not of type praw.Submission')
-            return False
-
         self.submission_queue.append(submission)
         self.queue_size += 1
 
@@ -28,7 +23,7 @@ class SubmissionWriter:
         return True
 
     def flush(self):
-        return _write_to_sql()
+        return self._write_to_sql()
 
     def _write_to_sql(self):
         # Connect to MySQL database
@@ -42,11 +37,11 @@ class SubmissionWriter:
                           for submission in self.submission_queue])[1:-1]
         sub_columns = str(attributes).replace("'", '')
 
-        sub_query = 'INSERT IGNORE INTO {} {} VALUES {}'.format(
-            self.submission_table_name, sub_columns, sub_values)
+        sub_query = 'INSERT IGNORE INTO {} {} VALUES {}'.format(self.submission_table_name, sub_columns, sub_values)
         try:
             cursor.execute(sub_query)
             db.commit()
+            print('Executed query: ' + sub_query)
         except:
             print('Error executing query: ' + sub_query)
             db.rollback()
@@ -71,6 +66,7 @@ class SubmissionWriter:
         try:
             cursor.execute(key_query)
             db.commit()
+            print('Executed query: ' + key_query)
         except:
             print('Error executing query: ' + key_query)
             db.rollback()
