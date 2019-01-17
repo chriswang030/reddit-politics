@@ -20,10 +20,10 @@ class SubmissionWriter:
         """ Pushes a Submission instance onto submission_queue. Unimplemented: thread-safe push.
 
         Args
-            submission: praw.Submission instance
+            submission (praw.Submission): submission to be written onto SQL database
 
-        Ret
-            True
+        Returns
+            bool: True
         """
 
         self.submission_queue.append(submission)
@@ -36,8 +36,8 @@ class SubmissionWriter:
     def flush(self):
         """ Calls _write_to_sql. Unimplemented: thread-safe flush.
 
-        Ret
-            True if _write_to_sql is successfully called. False if otherwise.
+        Returns
+            bool: True if _write_to_sql is successfully called. False if otherwise.
         """
 
         return self._write_to_sql()
@@ -46,9 +46,9 @@ class SubmissionWriter:
         """ Writes all submissions in submission_queue to appropriate table in SQL database. Column names
             in database must match attributes of praw.Submission instances.
 
-        Ret
-            success: True if all data is successfully written to database. False if any data could not
-            be written.
+        Returns
+            success (bool): True if all data is successfully written to database. False if any data could
+            not be written.
         """
 
         success = True
