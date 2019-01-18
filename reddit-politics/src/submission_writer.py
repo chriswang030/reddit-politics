@@ -1,16 +1,12 @@
 import newspaper
 import pymysql
-import yaml
 
-PATH = '/Users/Chris/Documents/workspace-py' # path to working directory
-
-with open(PATH + '/reddit-politics/reddit-politics/resources/config.yml', 'r') as file:
-    config = yaml.load(file)
+import config
 
 # Config article parsing
 nconfig = newspaper.Config()
 nconfig.MIN_WORD_COUNT = 150
-nconfig.MAX_KEYWORDFS = 35
+nconfig.MAX_KEYWORDS = 35
 nconfig.memoize_articles = False
 nconfig.fetch_images = False
 
@@ -60,48 +56,24 @@ class SubmissionWriter(object):
 
         success = True
 
-        db = pymysql.connect(**config['mysql'])
+        db = pymysql.connect(**config.mysql)
         cursor = db.cursor()
 
-        insert_query = 'INSERT IGNORE INTO {} {} VALUES {}'
         get_columns_query = 'SHOW columns FROM {}'
+        insert_query = 'INSERT IGNORE INTO {} {} VALUES {}'
 
         cursor.execute(get_columns_query.format(self.submission_table_name))
         attributes = tuple(column[0] for column in cursor.fetchall())
-        sub_values = str([tuple(getattr(submission, attribute) for attribute in attributes) for submission in self.submission_queue])[1:-1]
-        sub_columns = str(attributes).replace("'", '')
+        values = str([tuple(getattr(submission, attribute) for attribute in attributes) for submission in self.submission_queue])[1:-1]
+        columns = str(attributes).replace("'", '')
 
-        sub_query = insert_query.format(self.submission_table_name, sub_columns, sub_values)
+        query = insert_query.format(self.submission_table_name, columns, values)
         try:
-            cursor.execute(sub_query)
+            cursor.execute(query)
             db.commit()
-            print('Executed query: ' + sub_query)
+            print('Executed query: ' + query)
         except:
-            print('Error executing query: ' + sub_query)
-            db.rollback()
-            success = False
-
-        cursor.execute(get_columns_query.format(self.keywords_table_name))
-        key_columns = str(tuple(column[0] for column in cursor.fetchall())).replace("'", '')
-
-        key_values_list = []
-        for submission in self.submission_queue:
-            article = newspaper.Article(url=submission.url, config=nconfig)
-            try:
-                article.build()
-            except:
-                print('Error building article from submission ' + submisison.id)
-            for keyword in article.keywords:
-                key_values_list.append((submission.id, keyword))
-        key_values = str(key_values_list)[1:-1]
-
-        key_query = insert_query.format(self.keywords_table_name, key_columns, key_values)
-        try:
-            cursor.execute(key_query)
-            db.commit()
-            print('Executed query: ' + key_query)
-        except:
-            print('Error executing query: ' + key_query)
+            print('Error executing query: ' + query)
             db.rollback()
             success = False
 

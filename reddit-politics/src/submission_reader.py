@@ -2,14 +2,8 @@ import datetime as dt
 import praw
 from psaw import PushshiftAPI
 import pymysql
+
 import submission_writer as sw
-import yaml
-
-PATH = '/Users/Chris/Documents/workspace-py' # path to working directory
-
-with open(PATH + '/reddit-politics/reddit-politics/resources/config.yml', 'r') as file:
-    config = yaml.load(file)
-
 
 class SubmissionReader(object):
     def __init__(self, submission_table_name='submission', timestamp_column_name='created_utc'):
@@ -36,7 +30,7 @@ class SubmissionReader(object):
         """
         """
 
-        reddit = praw.Reddit(**config['praw'])
+        reddit = praw.Reddit(**config.praw)
         pushshift = PushshiftAPI(reddit)
 
         swriter = sw.SubmissionWriter()
