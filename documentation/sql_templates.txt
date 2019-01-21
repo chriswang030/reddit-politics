@@ -2,15 +2,9 @@ submission (
   id VARCHAR(16) NOT NULL PRIMARY KEY,
   created_utc FLOAT(12,1),
   score MEDIUMINT(8) UNSIGNED,
-  upvote_ratio FLOAT(3,2) UNSIGNED,
   num_comments MEDIUMINT(8) UNSIGNED,
   permalink VARCHAR(512),
   url VARCHAR(512),
-  title VARCHAR(512)
-)
-
-keywords (
-  submission_id VARCHAR(16) NOT NULL,
-  keyword VARCHAR(16) NOT NULL,
-  PRIMARY KEY (submission_id, keyword)
+  title VARCHAR(512),
+  retrieved_on FLOAT(12,1)
 )

@@ -1,6 +1,5 @@
 gensim
 newspaper3k
 nltk
-praw
-psaw
 pymysql
+requests
