@@ -58,6 +58,7 @@ class Trainer(object):
         lsi.save(config.LSI_MODEL_PATH)
 
         index = similarities.MatrixSimilarity(lsi[corpus], num_features=len(dictionary))
+        index.save(config.INDEX_PATH)
 
     def _process_article(self, url):
         article = newspaper.Article(url=url, config=self.nconfig)

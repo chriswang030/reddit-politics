@@ -19,21 +19,13 @@ class SubmissionWriter(object):
         return True
 
     def flush(self):
-        """ Flushes submission_queue by writing all to SQL. TODO: thread-safe flush."""
+        """ Flushes submission_queue by writing all to SQL. TODO: thread-safe flush. """
 
         if self.submission_queue:
             self._write_to_sql()
 
     def _write_to_sql(self):
-        """ Writes all submissions in submission_queue to appropriate table in SQL database. Column names
-            in database must match attributes of praw.Submission instances.
-
-        Returns
-            success (bool): True if all data is successfully written to database. False if any data could not
-            be written.
-        """
-
-        success = True
+        """ Writes all submissions in submission_queue to appropriate table in SQL database. """
 
         db = pymysql.connect(**config.mysql)
         cursor = db.cursor()
@@ -47,16 +39,10 @@ class SubmissionWriter(object):
         columns = str(attributes).replace("'", '')
 
         query = insert_query.format(self.submission_table_name, columns, values)
-        try:
-            cursor.execute(query)
-            db.commit()
-            print('Executed query: ' + query)
-        except:
-            print('Error executing query: ' + query)
-            db.rollback()
-            success = False
+        cursor.execute(query)
+        db.commit()
+        print('Executed query: {}'.format(query))
 
         db.close()
         queue_size = 0
         self.submission_queue.clear()
-        return success
